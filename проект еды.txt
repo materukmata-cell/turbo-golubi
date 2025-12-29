@@ -1,0 +1,176 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+
+// ====== ДАННЫЕ ======
+const RECIPES = [
+  { id: 1, title: "Овсянка с ягодами", calories: 320, protein: 12, fat: 8, carbs: 50, ingredients: ["овсяные хлопья", "ягоды"] },
+  { id: 2, title: "Салат с киноа", calories: 450, protein: 14, fat: 18, carbs: 55, ingredients: ["киноа", "авокадо"] },
+  { id: 3, title: "Лосось с овощами", calories: 520, protein: 40, fat: 22, carbs: 20, ingredients: ["лосось", "брокколи"] },
+  { id: 4, title: "Омлет с овощами", calories: 300, protein: 20, fat: 15, carbs: 10, ingredients: ["яйца", "овощи"] },
+  { id: 5, title: "Греческий йогурт с мёдом", calories: 280, protein: 18, fat: 6, carbs: 30, ingredients: ["йогурт"] },
+  { id: 6, title: "Куриная грудка с рисом", calories: 480, protein: 42, fat: 8, carbs: 55, ingredients: ["курица", "рис"] },
+  { id: 7, title: "Творог с ягодами", calories: 250, protein: 28, fat: 5, carbs: 20, ingredients: ["творог"] },
+  { id: 8, title: "Смузи банан-арахис", calories: 400, protein: 16, fat: 14, carbs: 45, ingredients: ["банан"] },
+  { id: 9, title: "Чечевичный суп", calories: 350, protein: 22, fat: 6, carbs: 40, ingredients: ["чечевица"] },
+  { id: 10, title: "Индейка с гречкой", calories: 500, protein: 38, fat: 10, carbs: 60, ingredients: ["индейка"] },
+  { id: 11, title: "Пшённая каша", calories: 290, protein: 9, fat: 5, carbs: 55, ingredients: ["пшено"] },
+  { id: 12, title: "Ролл с курицей", calories: 440, protein: 30, fat: 14, carbs: 45, ingredients: ["курица"] },
+  { id: 13, title: "Овощное рагу", calories: 310, protein: 10, fat: 9, carbs: 40, ingredients: ["овощи"] },
+  { id: 14, title: "Фалафель ПП", calories: 380, protein: 16, fat: 12, carbs: 45, ingredients: ["нут"] },
+  { id: 15, title: "Куриные тефтели", calories: 420, protein: 36, fat: 14, carbs: 20, ingredients: ["курица"] },
+  { id: 16, title: "Салат с фасолью", calories: 340, protein: 18, fat: 8, carbs: 45, ingredients: ["фасоль"] },
+  { id: 17, title: "Протеиновый смузи", calories: 360, protein: 28, fat: 8, carbs: 30, ingredients: ["протеин"] },
+  { id: 18, title: "Сырники ПП", calories: 390, protein: 30, fat: 12, carbs: 40, ingredients: ["творог"] },
+  { id: 19, title: "Гречка с грибами", calories: 350, protein: 14, fat: 7, carbs: 55, ingredients: ["гречка"] },
+  { id: 20, title: "Яичный салат", calories: 330, protein: 22, fat: 18, carbs: 10, ingredients: ["яйца"] }
+];
+
+const GOALS = {
+  pp: { label: "ПП", protein: 110, fat: 60, carbs: 200 },
+  mass: { label: "Набор массы", protein: 150, fat: 80, carbs: 300 },
+};
+
+const DAYS = ["Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота", "Воскресенье"];
+
+// ====== ПРИЛОЖЕНИЕ ======
+function Clock() {
+  const [time, setTime] = useState(new Date());
+
+  useEffect(() => {
+    const interval = setInterval(() => setTime(new Date()), 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <div className="text-sm text-gray-500 mb-2">🕒 {time.toLocaleTimeString()}</div>
+  );
+}
+
+export default function HealthyRecipesApp() {
+  // 🔐 Авторизация (упрощённая)
+  const [user, setUser] = useState<string | null>(null);
+  const [login, setLogin] = useState("");
+
+  // 📦 Состояния
+  const [goal, setGoal] = useState<keyof typeof GOALS>("pp");
+  const [dayMeals, setDayMeals] = useState<any[]>([]);
+  const [mealPlan, setMealPlan] = useState<Record<string, any[]>>({});
+
+  // ====== LOCAL STORAGE ======
+  useEffect(() => {
+    const savedUser = localStorage.getItem("user");
+    if (savedUser) setUser(savedUser);
+
+    const savedPlan = localStorage.getItem("mealPlan");
+    if (savedPlan) setMealPlan(JSON.parse(savedPlan));
+
+    const savedMeals = localStorage.getItem("dayMeals");
+    if (savedMeals) setDayMeals(JSON.parse(savedMeals));
+  }, []);
+
+  useEffect(() => {
+    if (user) localStorage.setItem("user", user);
+  }, [user]);
+
+  useEffect(() => {
+    localStorage.setItem("mealPlan", JSON.stringify(mealPlan));
+  }, [mealPlan]);
+
+  useEffect(() => {
+    localStorage.setItem("dayMeals", JSON.stringify(dayMeals));
+  }, [dayMeals]);
+
+  // ====== БЖУ ======
+  const totals = dayMeals.reduce(
+    (acc, r) => {
+      acc.protein += r.protein;
+      acc.fat += r.fat;
+      acc.carbs += r.carbs;
+      return acc;
+    },
+    { protein: 0, fat: 0, carbs: 0 }
+  );
+
+  // ====== АВТОРИЗАЦИЯ ======
+  if (!user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Card className="w-80">
+          <CardContent className="p-6">
+            <h2 className="text-xl font-bold mb-4">Вход</h2>
+            <Input placeholder="Имя пользователя" value={login} onChange={(e) => setLogin(e.target.value)} />
+            <Button className="w-full mt-4" onClick={() => setUser(login)}>Войти</Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // ====== ОСНОВНОЙ UI ======
+  return (
+    <div className="min-h-screen p-6 bg-gray-50">
+      <Clock />
+      <h1 className="text-3xl font-bold mb-2">🥗 План питания</h1>
+      <p className="mb-6">Пользователь: <b>{user}</b></p>
+
+      {/* ЦЕЛЬ */}
+      <div className="flex gap-3 mb-6">
+        {Object.entries(GOALS).map(([k, g]) => (
+          <Button key={k} variant={goal === k ? "default" : "outline"} onClick={() => setGoal(k as any)}>
+            {g.label}
+          </Button>
+        ))}
+      </div>
+
+      {/* РЕЦЕПТЫ */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-10">
+        {RECIPES.map((r) => (
+          <Card key={r.id}>
+            <CardContent className="p-4">
+              <h3 className="font-semibold">{r.title}</h3>
+              <p>{r.calories} ккал</p>
+              <Button className="w-full mt-2" onClick={() => setDayMeals([...dayMeals, r])}>Добавить сегодня</Button>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* ДНЕВНАЯ СТАТИСТИКА */}
+      <Card className="max-w-md mb-10">
+        <CardContent className="p-4">
+          <h2 className="font-bold mb-2">Сегодня</h2>
+          <p>Белки: {totals.protein} / {GOALS[goal].protein}</p>
+          <p>Жиры: {totals.fat} / {GOALS[goal].fat}</p>
+          <p>Углеводы: {totals.carbs} / {GOALS[goal].carbs}</p>
+        </CardContent>
+      </Card>
+
+      {/* ПЛАН ПИТАНИЯ */}
+      <h2 className="text-2xl font-bold mb-4">📅 План на неделю</h2>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {DAYS.map((day) => (
+          <Card key={day}>
+            <CardContent className="p-4">
+              <h3 className="font-semibold mb-2">{day}</h3>
+              {(mealPlan[day] || []).map((m, i) => (
+                <p key={i} className="text-sm">• {m.title}</p>
+              ))}
+              <Button
+                className="w-full mt-2"
+                variant="outline"
+                onClick={() => setMealPlan({ ...mealPlan, [day]: [...(mealPlan[day] || []), RECIPES[0]] })}
+              >
+                Добавить блюдо
+              </Button>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    </div>
+  );
+}
+
